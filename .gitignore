@@ -1,0 +1,6 @@
+.idea
+.env
+*.lock
+.venv
+env/
+venv/
