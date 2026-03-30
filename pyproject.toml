@@ -8,7 +8,9 @@ authors = [
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
-    "tabulate (>=0.10.0,<0.11.0)"
+    "tabulate (>=0.10.0,<0.11.0)",
+    "types-requests (>=2.33.0.20260327,<3.0.0.0)",
+    "types-psycopg2 (>=2.9.21.20260223,<3.0.0.0)"
 ]
 
 
@@ -34,12 +36,22 @@ test = [
 ]
 [tool.black]
 line-length = 119
-exclude = '.git'
+exclude = '''
+/(
+    \.git
+  | \.venv
+  | \.env
+  | build
+  | dist
+  | migrations
+)/
+'''
 
 [tool.isort]
 line_length = 119
+profile = "black"
 
 [tool.mypy]
 disallow_untyped_defs = true
 warn_return_any = true
-exclude = 'venv'
+exclude = '.venv'
