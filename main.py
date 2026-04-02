@@ -38,4 +38,4 @@ if __name__ == "__main__":
     db_man.insert_company(data)
     print(db_man.get_vacancies_with_keyword("python"))
 
-# приватность, абстрактный класс,
+# абстрактный класс, doc

@@ -1,7 +1,6 @@
 from abc import ABC, abstractmethod
 from typing import Any
 
-import psycopg2
 import psycopg2 as psycopg
 from psycopg2._psycopg import connection
 
@@ -13,6 +12,24 @@ class BaseDBManager(ABC):
 
     @abstractmethod
     def create_table(self) -> None: ...
+    @abstractmethod
+    def _connect(self) -> None: ...
+    @abstractmethod
+    def insert_company(self, employers: list[Employer]) -> None: ...
+    @abstractmethod
+    def exist_vacancy(self, company_id: int | None, id_vacancy: str) -> bool: ...
+    @abstractmethod
+    def get_id_company(self, company_id: str) -> int | None: ...
+    @abstractmethod
+    def get_companies_and_vacancies_count(self) -> list[tuple]: ...
+    @abstractmethod
+    def get_all_vacancies(self) -> list[tuple]: ...
+    @abstractmethod
+    def get_avg_salary(self) -> float: ...
+    @abstractmethod
+    def get_vacancies_with_higher_salary(self) -> list[tuple]: ...
+    @abstractmethod
+    def get_vacancies_with_keyword(self, keyword: str) -> list[tuple]: ...
 
 
 class DBManager(BaseDBManager):
@@ -42,6 +59,7 @@ class DBManager(BaseDBManager):
     def db_create(
         db_password: str, db_name: str, db_user: str = "postgres", db_port: int = 5432, db_host: str = "127.0.0.1"
     ) -> None:
+        """Метод создаёт базу данных"""
         conn = psycopg.connect(dbname="postgres", user=db_user, password=db_password, port=db_port, host=db_host)
         conn.set_session(autocommit=True)
         cursor = conn.cursor()
@@ -63,6 +81,7 @@ class DBManager(BaseDBManager):
             cursor.execute(f"CREATE DATABASE {db_name}")
 
     def create_table(self) -> None:
+        """Метод создаёт таблицы в базе даанных"""
         if self.__conn is None:
             self._connect()
         conn = psycopg.connect(
@@ -95,6 +114,7 @@ class DBManager(BaseDBManager):
         """)
 
     def _connect(self) -> None:
+        """Проверка Соединения с базой данных"""
         try:
             self.__conn = psycopg.connect(
                 dbname=self.__db_name,
@@ -110,6 +130,7 @@ class DBManager(BaseDBManager):
             raise ValueError("Проверьте введенные данные.")
 
     def insert_company(self, employers: list[Employer]) -> None:
+        """Метод заполняет созданные в БД PostgreSQL таблицы данными о работодателях и их вакансиях."""
         if self.__conn is None:
             self._connect()
         if self.__conn is None:
@@ -120,7 +141,12 @@ class DBManager(BaseDBManager):
                 id_company = self.get_id_company(company.id)
                 if id_company is None:
                     cursor.execute(f"""
-                       INSERT INTO companies(id, name) VALUES ({company.id}, '{company.name}') RETURNING id;
+                        INSERT INTO 
+                            companies(id, name) 
+                        VALUES 
+                            ({company.id}, '{company.name}') 
+                        RETURNING 
+                            id;
                     """)
                     fetch_data: tuple[int] | None = cursor.fetchone()
                     id_company = fetch_data[0] if fetch_data else None
@@ -128,7 +154,8 @@ class DBManager(BaseDBManager):
                     is_exist_vacancy = self.exist_vacancy(id_company, vacancy.id)
                     if is_exist_vacancy:
                         cursor.execute(f"""
-                                INSERT INTO vacancies
+                            INSERT INTO 
+                                vacancies
                                 (
                                 id_vacancy,
                                 company_id,
@@ -137,7 +164,8 @@ class DBManager(BaseDBManager):
                                 salary_from,
                                 salary_to,
                                 requirement
-                                ) VALUES (
+                                ) 
+                            VALUES (
                                 {vacancy.id},
                                 {id_company},
                                 '{vacancy.name}',
@@ -151,6 +179,7 @@ class DBManager(BaseDBManager):
                 print(company, e)
 
     def exist_vacancy(self, company_id: int | None, id_vacancy: str) -> bool:
+        """Метод заполняет созданные в БД PostgreSQL таблицы данными о работодателях и их вакансиях."""
         if not isinstance(company_id, int):
             raise ValueError("Такой компании не найдено")
         if self.__conn is None:
@@ -171,6 +200,7 @@ class DBManager(BaseDBManager):
         return get_data is None
 
     def get_id_company(self, company_id: str) -> int | None:
+        """Метод добавляет ID компании"""
         if self.__conn is None:
             self._connect()
         cursor = self.__conn.cursor()
@@ -186,55 +216,95 @@ class DBManager(BaseDBManager):
         return get_data[0] if get_data else None
 
     def get_companies_and_vacancies_count(self) -> list[tuple]:
+        """Метод получает список всех компаний и количество вакансий у каждой компании."""
         if self.__conn is None:
             self._connect()
         cursor = self.__conn.cursor()
         cursor.execute("""
             SELECT 
-            companies.name, COUNT(vacancies) FROM companies 
-JOIN vacancies ON vacancies.company_id=companies.id
-GROUP BY companies.name
+                companies.name, 
+            COUNT(vacancies) 
+            FROM 
+                companies 
+            JOIN 
+                vacancies 
+            ON 
+                vacancies.company_id=companies.id
+            GROUP BY
+                companies.name
         """)
         return cursor.fetchall()
 
     def get_all_vacancies(self) -> list[tuple]:
+        """Метод получает список всех вакансий с указанием названия компании,
+        названия вакансии и зарплаты и ссылки на вакансию."""
         if self.__conn is None:
             self._connect()
         cursor = self.__conn.cursor()
-        cursor.execute("""SELECT
-             companies.name 
-             AS company_name, vacancies.name 
-             AS vacancy_name, vacancies.salary_from || ' - ' || vacancies.salary_to 
-             AS salary, vacancies.url FROM companies 
-JOIN vacancies ON vacancies.company_id=companies.id
-GROUP BY companies.name, vacancies.name, vacancies.salary_from, vacancies.salary_to, vacancies.url
-ORDER BY companies.name ASC""")
+        cursor.execute("""
+            SELECT
+                companies.name 
+            AS 
+                company_name, vacancies.name 
+            AS 
+                vacancy_name, vacancies.salary_from || ' - ' || vacancies.salary_to 
+            AS 
+                salary, vacancies.url FROM companies 
+            JOIN 
+                vacancies ON vacancies.company_id=companies.id
+            GROUP BY
+                companies.name, vacancies.name, vacancies.salary_from, vacancies.salary_to, vacancies.url
+            ORDER BY
+                companies.name 
+            ASC
+            """)
         return cursor.fetchall()
 
     def get_avg_salary(self) -> float:
+        """Метод получает среднюю зарплату по вакансиям."""
         if self.__conn is None:
             self._connect()
         cursor = self.__conn.cursor()
         cursor.execute("""
         SELECT
-            (AVG(vacancies.salary_from) +  AVG(vacancies.salary_to))/2 
-        AS avg_salary FROM vacancies""")
+            (AVG
+                (vacancies.salary_from) +  
+            AVG
+                (vacancies.salary_to))/2 
+            AS 
+                avg_salary 
+            FROM 
+                vacancies
+                """)
         avg_salary: tuple | None = cursor.fetchone()
         return round(avg_salary[0], 2) if avg_salary else 0
 
     def get_vacancies_with_higher_salary(self) -> list[tuple]:
+        """получает список всех вакансий, у которых зарплата выше средней по всем вакансиям."""
         if self.__conn is None:
             self._connect()
         cursor = self.__conn.cursor()
         avg_salary = self.get_avg_salary()
-        cursor.execute(f"""SELECT * FROM vacancies WHERE salary_to > {avg_salary}""")
+        cursor.execute(f"""
+            SELECT * FROM 
+                vacancies 
+            WHERE 
+                salary_to > {avg_salary}
+            """)
         return cursor.fetchall()
 
     def get_vacancies_with_keyword(self, keyword: str) -> list[tuple]:
+        """Метод получает список всех вакансий, в названии которых содержатся переданные в метод слова,
+        например python."""
         if self.__conn is None:
             self._connect()
         cursor = self.__conn.cursor()
         cursor.execute(f"""
-            SELECT * FROM vacancies WHERE name iLIKE '%{keyword}%'
+            SELECT * FROM 
+                vacancies 
+            WHERE 
+                name 
+            iLIKE 
+                '%{keyword}%'
         """)
         return cursor.fetchall()

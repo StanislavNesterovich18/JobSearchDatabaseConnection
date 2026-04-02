@@ -39,6 +39,8 @@ class BaseApiClass(ABC):
 
     @abstractmethod
     def get_info_employer(self, employer_id: str) -> Employer: ...
+    @abstractmethod
+    def get_info_vacancies(self, vacancies_url_employer: str) -> list[Vacancies]: ...
 
 
 class ApiClass(BaseApiClass):
@@ -70,6 +72,7 @@ class ApiClass(BaseApiClass):
         response = self.__session.get(self.__BASE_URL + f"employers/{employer_id}", headers=self.__headers)
         response.raise_for_status()
         info_employer = response.json()
+        print(info_employer)
         id_employer: str = info_employer["id"]
         name_employer: str = info_employer["name"]
         description_employer: str = info_employer["description"]
