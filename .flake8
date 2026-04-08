@@ -1,3 +1,4 @@
 [flake8]
 max-line-length = 119
+ignore = W291,E704
 exclude = .git, .venv, .env, __pycashe__
