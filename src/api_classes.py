@@ -72,7 +72,6 @@ class ApiClass(BaseApiClass):
         response = self.__session.get(self.__BASE_URL + f"employers/{employer_id}", headers=self.__headers)
         response.raise_for_status()
         info_employer = response.json()
-        print(info_employer)
         id_employer: str = info_employer["id"]
         name_employer: str = info_employer["name"]
         description_employer: str = info_employer["description"]

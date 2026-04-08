@@ -150,6 +150,7 @@ class DBManager(BaseDBManager):
                     """)
                     fetch_data: tuple[int] | None = cursor.fetchone()
                     id_company = fetch_data[0] if fetch_data else None
+                    self.__conn.commit()
                 for vacancy in company.list_vacancies:
                     is_exist_vacancy = self.exist_vacancy(id_company, vacancy.id)
                     if is_exist_vacancy:
@@ -172,11 +173,12 @@ class DBManager(BaseDBManager):
                                 '{vacancy.apply_alternate_url}',
                                 {vacancy.salary_from or 0},
                                 {vacancy.salary_to or 0},
-                                '{vacancy.snippet_requirement}'
+                                '{vacancy.snippet_requirement if vacancy.snippet_requirement else 'Описание нет'}'
                                  );
                             """)
+                        self.__conn.commit()
             except Exception as e:
-                print(company, e)
+                raise e
 
     def exist_vacancy(self, company_id: int | None, id_vacancy: str) -> bool:
         """Метод заполняет созданные в БД PostgreSQL таблицы данными о работодателях и их вакансиях."""
